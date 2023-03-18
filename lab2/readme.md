@@ -109,7 +109,7 @@ pip install Scrapy
 
     将`settings.py`文件中的`DEFAULT_REQUEST_HEADERS`更改为图片中的对应内容，该内容的获取方法：F12打开开发工具-网络-点击相应文件
 
-    为了因网络延迟造成的数据丢失，在`settings.py`增加
+    为了防止因网络延迟造成的数据丢失，在`settings.py`增加
     ```python
     AUTOTHROTTLE_START_DELAY = 20
     AUTOTHROTTLE_MAX_DELAY = 60
