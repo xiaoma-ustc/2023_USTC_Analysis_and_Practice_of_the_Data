@@ -1,0 +1,757 @@
+\documentclass[12pt, a4paper, oneside]{ctexart}
+\usepackage{amsmath, amsthm, amssymb, graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{color}
+\usepackage{enumerate}
+\usepackage{epstopdf}
+\usepackage{float}
+\usepackage{framed}
+\usepackage{titlesec}
+\usepackage{cite}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{geometry}
+\usepackage{caption}
+\usepackage{subfigure}
+\usepackage[section]{placeins}
+\usepackage{fancyhdr}%导入fancyhdr包
+\usepackage{ctex}%导入ctex包
+\usepackage[ruled,vlined]{algorithm2e}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=blue,      
+    urlcolor=blue,
+    citecolor=cyan,
+}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+\definecolor{shadecolor}{rgb}{0.5,0.5,0.5}
+\lstset{ %
+    language=Python,                % the language of the code
+    basicstyle=\footnotesize,           % the size of the fonts that are used for the code
+    numbers=left,                   % where to put the line-numbers
+    %numberstyle=\tiny\color{gray},  % the style that is used for the line-numbers
+    %stepnumber=2,                   % the step between two line-numbers. If it's 1, each line 
+                            % will be numbered
+    %numbersep=5pt,                  % how far the line-numbers are from the code
+    %backgroundcolor=\color{blue},      % choose the background color. You must add \usepackage{color}
+    showspaces=false,               % show spaces adding particular underscores
+    %showstringspaces=false,         % underline spaces within strings
+    showtabs=false,                 % show tabs within strings adding particular underscores
+    frame=single,                   % adds a frame around the code
+    rulecolor=\color{black},        % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. commens (green here))
+    tabsize=2,                      % sets default tabsize to 2 spaces
+    captionpos=b,                   % sets the caption-position to bottom
+    breaklines=true,                % sets automatic line breaking
+    breakatwhitespace=false,        % sets if automatic breaks should only happen at whitespace
+    % title=\lstname,                   % show the filename of files included with \lstinputlisting;
+                            % also try caption instead of title
+    keywordstyle=\color{blue},          % keyword style
+    commentstyle=\color{dkgreen},       % comment style
+    stringstyle=\color{mauve},         % string literal style
+    escapeinside={\%*}{*)},            % if you want to add LaTeX within your code
+    morekeywords={*,...}               % if you want to add more keywords to the set
+}
+\title{数据分析及实践\_Assignment4}
+\author{Xiaoma}
+\date{\today}
+\pagestyle{fancy}
+
+\lhead{第 4 次实验\\\today}
+\chead{中国科学技术大学\\数据分析及实践}
+
+\rhead{Assignment 4\\ {\CTEXoptions[today=old]\today}}
+\newcommand{\upcite}[1]{\textsuperscript{\cite{#1}}}
+\begin{document}
+\maketitle
+\section{实验要求}
+利用\textbf{Assignment3}得到的与\textbf{REPEAT}列最相关的5个特征作为特征集，
+根据关联规则算法，挖掘这5个特征和\textbf{REPEAT}构成的频繁项集和关联规则。
+
+注意事项：
+\begin{itemize}
+    \item 数据集中与\textbf{REPEAT}列直接相关的三个特征在本次实验中仅允许合为一个特征使用 \textbf{'ST127Q01TA,ST127Q02TA,ST127Q03TA'}
+    \item 需要挖掘的频繁项集的最小支持度阈值为0.6，最小置信度阈值为0.15
+    \item 建议使用的关联规则算法：\textbf{Apriori}或相关改进算法（自行实现）
+    \item 选择的特征可以是数据集里有的，也可以是自己在实验三中构建的特征
+\end{itemize}
+\newpage
+\section{实验原理}
+\subsection{3$\sigma$准则}
+3 $\sigma$准则是一个简单的推论，几乎所有的值都在平均值正负三个标准差的范围内，也就是在实验上可以将99.7\%的机率视为“几乎一定”。如果数据不服从正态分布，也可以用远离平均值的多少倍标准差来描述（这就使该原理可以适用于不同的业务场景，只是需要根据经验来确定 $k$, $\sigma$中的$k$值，这个$k$值就可以认为是阈值）。
+
+
+$$P(|x-\mu|>3\sigma)\leq0.003$$
+
+其中，$\mu$是样本的平均值，$\sigma$是样本的标准差。这个公式表示，对于一个正态分布的样本，它的绝对偏差超过3倍标准差的概率小于等于0.003，也就是说，99.7%的数据都在平均值正负三个标准差的范围内¹。
+
+\subsection{提升度}
+提升度是一种关联规则中的度量，用于衡量两个事件之间的相关性。提升度越大，表示两个事件之间的相关性越强。提升度的数学原理可以用下面这个公式表示：
+
+$$lift(A,B)=\frac{P(A,B)}{P(A)P(B)}$$
+
+其中，A和B是两个事件，P(A)和P(B)分别是A和B的支持度，P(A,B)是A和B同时出现的概率。³
+\subsection{置信度}
+置信度是指在统计学中描述概率的另一种方式。
+例如，使用0.95的置信水平构建置信区间，
+则有信心估计值在置信区间指定的上限和
+下限值之间的次数为100次中的95次。
+
+\subsection{Apriori算法}
+Apriori算法是经典的挖掘频繁项集和关联规则的数据挖掘算法。A priori在拉丁语中指"来自以前"。当定义问题时，通常会使用先验知识或者假设，这被称作"一个先验"（a priori）。
+
+Apriori算法的数学原理如下：首先，找出所有频繁项集，然后由频繁项集产生强关联规则。Apriori算法的核心是利用了频繁项集的性质，即频繁项集的所有非空子集也一定是频繁的。
+
+以下是Apriori算法的伪代码：
+\begin{algorithm}[h]
+    \SetAlgoLined
+    \KwData{\text{数据集}}
+    \KwResult{\text{频繁项集}}
+
+    initialization\;
+    k = 1\;
+    $F_{k}$ = $\{i | in \in I, \sigma(\{i\}) \geq N \times minsup\}$\;
+
+    \Repeat{$F_{k} = \varnothing $}{
+        k = k + 1\;
+        $C_{k}$ = apriori-gen($F_{k-1}$)
+        \For{transaction $\in T$}{
+            $C_{t}$ = subset($C_{k}$,t)\;
+            \For{c $\in C_{t}$}{
+                $\sigma(c)$ = $\sigma(c)$ + 1
+            }
+        }
+        $F_{k} = \{c | c \in C_{k},\sigma(c) \geq N \times minsup\}$\;
+    }
+    \caption{Apriori算法}
+    \label{algo:algorithm1}
+\end{algorithm}
+\section{实验环境}
+\textbf{VSCode + Python3.9.13}
+\section{实验步骤}
+\subsection{数据转换}
+参考\textbf{Assignment3}的特征相关性，首先抽取实验所需要的5个特征以及\textbf{REPEAT}列，\textbf{'ST127Q02TA,ST001D01T,GRADE,ISCEDL,OCOD2,REPEAT'}。
+根据实验要求，只抽取\textbf{REPEAT}列值为1的数据，丢弃所有缺失数据。
+
+\subsubsection{数据去噪}
+使用\textbf{3$\sigma$}准则进行去噪。
+
+\subsubsection{数据格式转换}
+为了将原格式数据转换为\textbf{Apriori}算法的输入数据，
+将挑选的5个特征的所有不同的取值均作为不同类别的事件，构建一个列为所有不同事件的矩阵$\mathbf{R}$，
+若$\mathbf{R}[i][j]$非空，则说明在第$i$次记录中，事件$j$发生了。
+
+\subsection{寻找频繁项集和关联规则}
+使用\textbf{Apriori}算法寻找频繁项集和关联规则，由于\textbf{OCOD2}中有许多只出现过一次的值，考虑到计算时间复杂度，
+分别删去出现频率小于10，小于50的值然后计算频繁项集。
+\subsubsection{Fre > 10}
+\begin{table}[h]
+    \centering
+    \begin{tabular}{c}
+    \toprule
+    k=1的频繁项集                                     \\
+    \midrule
+    ISCEDL\_2.0\\
+    REPEAT\\
+    ST127Q02TA\_2.0\\
+    ST001D01T\_9.0\\
+    GRADE\_-1.0\\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{cc}
+    \toprule
+    k=2的频繁项集                                     \\
+    \midrule
+    ISCEDL\_2.0&REPEAT\\
+    ISCEDL\_2.0&ST127Q02TA\_2.0\\
+    REPEAT&ST127Q02TA\_2.0\\
+    ISCEDL\_2.0&ST001D01T\_9.0\\
+    GRADE\_-1.0&ISCEDL\_2.0\\
+    ST001D01T\_9.0&REPEAT\\
+    GRADE\_-1.0&REPEAT\\
+    GRADE\_-1.0&ST001D01T\_9.0\\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{ccc}
+    \toprule
+    k=3的频繁项集                                     \\
+    \midrule
+    ISCEDL\_2.0&REPEAT&ST127Q02TA\_2.0\\
+    ISCEDL\_2.0&ST001D01T\_9.0&REPEAT\\
+    GRADE\_-1.0&ISCEDL\_2.0&REPEAT\\
+    GRADE\_-1.0&ISCEDL\_2.0&ST001D01T\_9.0\\
+    GRADE\_-1.0&ST001D01T\_9.0&REPEAT\\
+    \bottomrule
+    \end{tabular}
+\end{table}
+\begin{table}[h]
+    \centering
+    \begin{tabular}{cccc}
+    \toprule
+    k=4的频繁项集                                     \\
+    \midrule
+    GRADE\_-1.0&ST001D01T\_9.0&ISCEDL\_2.0&REPEAT\\
+    \bottomrule
+    \end{tabular}
+\end{table}
+\clearpage
+分别以置信度$conf$和置信度$conf + $提升度$Lift = \frac{P(Y | X)}{P(Y)} > 1$计算关联规则，结果见附录。
+\subsubsection{Fre > 50}
+\begin{table}[h]
+    \centering
+    \begin{tabular}{c}
+    \toprule
+    k=1的频繁项集                                     \\
+    \midrule
+    ISCEDL\_2.0\\
+    REPEAT\\
+    ST127Q02TA\_2.0\\
+    ST001D01T\_9.0\\
+    GRADE\_-1.0\\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{cc}
+    \toprule
+    k=2的频繁项集                                     \\
+    \midrule
+    ISCEDL\_2.0& REPEAT\\
+    ISCEDL\_2.0&ST127Q02TA\_2.0\\
+    REPEAT&ST127Q02TA\_2.0\\
+    ISCEDL\_2.0&ST001D01T\_9.0\\
+    GRADE\_-1.0&ISCEDL\_2.0\\
+    ST001D01T\_9.0&REPEAT\\
+    GRADE\_-1.0&REPEAT\\
+    GRADE\_-1.0&ST001D01T\_9.0\\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{ccc}
+    \toprule
+    k=3的频繁项集                                     \\
+    \midrule
+    ISCEDL\_2.0&REPEAT&ST127Q02TA\_2.0\\
+    ISCEDL\_2.0&ST001D01T\_9.0&REPEAT\\
+    GRADE\_-1.0&ISCEDL\_2.0&REPEAT\\
+    GRADE\_-1.0&ISCEDL\_2.0&ST001D01T\_9.0\\
+    GRADE\_-1.0&ST001D01T\_9.0&REPEAT\\
+    \bottomrule
+    \end{tabular}
+\end{table}
+\begin{table}[h]
+    \centering
+    \begin{tabular}{cccc}
+    \toprule
+    k=4的频繁项集                                     \\
+    \midrule
+    GRADE\_-1.0&ST001D01T\_9.0&ISCEDL\_2.0&REPEAT\\
+    \bottomrule
+    \end{tabular}
+\end{table}
+\clearpage
+分别以置信度$conf$和置信度$conf + $提升度$Lift = \frac{P(Y | X)}{P(Y)} > 1$计算关联规则，结果见附录。
+
+
+
+\section{总结}
+每个特征的大致含义如下：
+\begin{itemize}
+    \item REPEAT：是否留级过
+    \item GRADE：所在年级是否滞后与同龄人
+    \item ST127Q02TA：留级的次数
+    \item ST001D01T：学生年级
+    \item ISCEDL：学生学段
+    \item OCOD2：父亲的职业
+\end{itemize}
+
+通过观察频繁项集与关联规则，发现
+\begin{enumerate}
+    \item 清洗后的数据中复读的学生均为初中生。
+    \item 九年级的学生与复读具有强相关性
+    \item 九年级的学生大部分只留级过一次。
+    \item 去除低频项的阈值大小与结果几乎无关，父亲职业相对于其他特征对复读影响较小。
+\end{enumerate}
+
+根据分析结果以及现实生活中对上述特征的经验，推测实验结果是合理的。
+
+
+\subsection{探索性分析（附录6.3）}
+\begin{itemize}
+    \item 探索对于国家与上述特征的关联规则，除了满足上述规则以外，发现西班牙的学生与留级，并且留级两次强相关。
+    \item 只考虑巴拿马与上述特征的关联规则，除了满足上述规则以外，发现巴拿马的学生在年级低于同龄人一年时留级过两次，推测留级可能是超前学习导致的。
+    \item 只考虑墨西哥与上述特征的关联规则，基本满足上述规则
+    \item 值考虑西班牙与上述特征的关联规则，除了满足上述规则以外，发现西班牙的学生在年级低于同龄人一年时留级过两次，推测留级可能是超前学习导致的。
+\end{itemize}
+
+
+
+
+
+
+
+\clearpage
+\section{附录}
+\subsection{Fre > 10的数据关联规则}
+\subsubsection{只考虑conf的关联规则 }   
+ISCEDL\_2.0--> REPEAT\\
+together support: 1.0 , conf: 1.0 , lift: 1.0\\
+REPEAT--> ISCEDL\_2.0\\
+together support: 1.0 , conf: 1.0 , lift: 1.0\\
+ISCEDL\_2.0--> ST127Q02TA\_2.0\\
+together support: 0.752 , conf: 0.752 , lift: 1.0\\
+ST127Q02TA\_2.0--> ISCEDL\_2.0\\
+ together support: 0.752 , conf: 1.0 , lift: 1.0\\
+REPEAT--> ST127Q02TA\_2.0\\
+together support: 0.752 , conf: 0.752 , lift: 1.0\\
+ST127Q02TA\_2.0--> REPEAT\\
+ together support: 0.752 , conf: 1.0 , lift: 1.0\\
+ST001D01T\_9.0--> ISCEDL\_2.0\\
+ together support: 0.776 , conf: 1.0 , lift: 1.0\\
+ISCEDL\_2.0--> ST001D01T\_9.0\\
+ together support: 0.776 , conf: 0.776 , lift: 1.0\\
+ISCEDL\_2.0--> GRADE\_-1.0\\
+ together support: 0.776 , conf: 0.776 , lift: 1.0\\
+GRADE\_-1.0--> ISCEDL\_2.0\\
+ together support: 0.776 , conf: 1.0 , lift: 1.0\\
+ST001D01T\_9.0--> REPEAT\\
+ together support: 0.776 , conf: 1.0 , lift: 1.0\\
+REPEAT--> ST001D01T\_9.0\\
+ together support: 0.776 , conf: 0.776 , lift: 1.0\\
+GRADE\_-1.0--> REPEAT\\
+ together support: 0.776 , conf: 1.0 , lift: 1.0\\
+REPEAT--> GRADE\_-1.0\\
+ together support: 0.776 , conf: 0.776 , lift: 1.0\\
+ST001D01T\_9.0--> GRADE\_-1.0\\
+ together support: 0.776 , conf: 1.0 , lift: 1.289\\
+GRADE\_-1.0--> ST001D01T\_9.0\\
+ together support: 0.776 , conf: 1.0 , lift: 1.289\\
+ISCEDL\_2.0--> REPEAT,ST127Q02TA\_2.0\\
+together support: 0.752 , conf: 0.752 , lift: 1.0\\
+REPEAT--> ISCEDL\_2.0, ST127Q02TA\_2.0\\
+together support: 0.752 , conf: 0.752 , lift: 1.0\\
+ST127Q02TA\_2.0--> ISCEDL\_2.0, REPEAT\\
+ together support: 0.752 , conf: 1.0 , lift: 1.0\\
+ST001D01T\_9.0--> ISCEDL\_2.0,REPEAT\\
+ together support: 0.776 , conf: 1.0 , lift: 1.0\\
+ISCEDL\_2.0--> ST001D01T\_9.0,REPEAT\\
+ together support: 0.776 , conf: 0.776 , lift: 1.0\\
+REPEAT--> ST001D01T\_9.0,ISCEDL\_2.0\\
+ together support: 0.776 , conf: 0.776 , lift: 1.0\\
+GRADE\_-1.0--> ISCEDL\_2.0,REPEAT\\
+ together support: 0.776 , conf: 1.0 , lift: 1.0\\
+ISCEDL\_2.0--> GRADE\_-1.0,REPEAT\\
+ together support: 0.776 , conf: 0.776 , lift: 1.0\\
+REPEAT--> ISCEDL\_2.0,GRADE\_-1.0\\
+ together support: 0.776 , conf: 0.776 , lift: 1.0\\
+ST001D01T\_9.0--> ISCEDL\_2.0,GRADE\_-1.0\\
+ together support: 0.776 , conf: 1.0 , lift: 1.289\\
+ISCEDL\_2.0--> ST001D01T\_9.0,GRADE\_-1.0\\
+ together support: 0.776 , conf: 0.776 , lift: 1.0\\
+GRADE\_-1.0--> ST001D01T\_9.0,ISCEDL\_2.0\\
+ together support: 0.776 , conf: 1.0 , lift: 1.289\\
+GRADE\_-1.0--> ST001D01T\_9.0,REPEAT\\
+ together support: 0.776 , conf: 1.0 , lift: 1.289\\
+ST001D01T\_9.0--> GRADE\_-1.0,REPEAT\\
+ together support: 0.776 , conf: 1.0 , lift: 1.289\\
+REPEAT--> ST001D01T\_9.0,GRADE\_-1.0\\
+ together support: 0.776 , conf: 0.776 , lift: 1.0\\
+ISCEDL\_2.0--> REPEAT,ST001D01T\_9.0,GRADE\_-1.0\\
+ together support: 0.776 , conf: 0.776 , lift: 1.0\\
+REPEAT--> ST001D01T\_9.0,ISCEDL\_2.0,GRADE\_-1.0\\
+ together support: 0.776 , conf: 0.776 , lift: 1.0\\
+GRADE\_-1.0--> ST001D01T\_9.0,ISCEDL\_2.0,REPEAT\\
+ together support: 0.776 , conf: 1.0 , lift: 1.289\\
+ST001D01T\_9.0--> REPEAT,ISCEDL\_2.0,GRADE\_-1.0\\
+ together support: 0.776 , conf: 1.0 , lift: 1.289\\
+
+ \subsubsection{同时考虑conf和Lift的关联规则 } 
+ GRADE\_-1.0 --> ST001D01T\_9.0 \\
+together support: 0.776 , conf: 1.0 , lift: 1.289\\
+ST001D01T\_9.0 --> GRADE\_-1.0 \\
+together support: 0.776 , conf: 1.0 , lift: 1.289\\
+GRADE\_-1.0 --> ST001D01T\_9.0,ISCEDL\_2.0 \\
+together support: 0.776 , conf: 1.0 , lift: 1.289\\
+ST001D01T\_9.0 --> GRADE\_-1.0,ISCEDL\_2.0 \\
+together support: 0.776 , conf: 1.0 , lift: 1.289\\
+GRADE\_-1.0 --> REPEAT,ST001D01T\_9.0 \\
+together support: 0.776 , conf: 1.0 , lift: 1.289\\
+ST001D01T\_9.0 --> REPEAT,GRADE\_-1.0 \\
+together support: 0.776 , conf: 1.0 , lift: 1.289\\
+GRADE\_-1.0 --> REPEAT,ST001D01T\_9.0,ISCEDL\_2.0 \\
+together support: 0.776 , conf: 1.0 , lift: 1.289\\
+ST001D01T\_9.0 --> REPEAT,GRADE\_-1.0,ISCEDL\_2.0 \\
+together support: 0.776 , conf: 1.0 , lift: 1.289\\
+\subsection{Fre > 50的数据关联规则}
+
+\subsubsection{只考虑conf的关联规则 }                           
+
+ISCEDL\_2.0 --> REPEAT \\
+together support: 1.0 , conf: 1.0\\
+REPEAT --> ISCEDL\_2.0 \\
+together support: 1.0 , conf: 1.0\\ 
+ISCEDL\_2.0 --> ST127Q02TA\_2.0 \\
+together support: 0.752 , conf: 0.752 \\
+ST127Q02TA\_2.0 --> ISCEDL\_2.0 \\
+ together support: 0.752 , conf: 1.0 \\
+REPEAT --> ST127Q02TA\_2.0 \\
+together support: 0.752 , conf: 0.752 \\
+ST127Q02TA\_2.0 --> REPEAT \\
+together support: 0.752 , conf: 1.0 \\
+ISCEDL\_2.0 --> ST001D01T\_9.0 \\
+ together support: 0.776 , conf: 0.776\\
+ST001D01T\_9.0 --> ISCEDL\_2.0 \\
+together support: 0.776 , conf: 1.0 \\
+GRADE\_-1.0 --> ISCEDL\_2.0 \\
+together support: 0.776 , conf: 1.0\\ 
+ISCEDL\_2.0 --> GRADE\_-1.0 \\
+together support: 0.776 , conf: 0.776 \\
+ST001D01T\_9.0 --> REPEAT \\
+together support: 0.776 , conf: 1.0 \\
+REPEAT --> ST001D01T\_9.0 \\
+together support: 0.776 , conf: 0.776 \\
+GRADE\_-1.0 --> REPEAT \\
+together support: 0.776 , conf: 1.0 \\
+REPEAT --> GRADE\_-1.0 \\
+ together support: 0.776 , conf: 0.776 \\
+GRADE\_-1.0 --> ST001D01T\_9.0 \\
+together support: 0.776 , conf: 1.0\\
+ST001D01T\_9.0 --> GRADE\_-1.0 \\
+ together support: 0.776 , conf: 1.0 \\
+ISCEDL\_2.0 --> REPEAT,ST127Q02TA\_2.0 \\
+together support: 0.752 , conf: 0.752 \\
+REPEAT --> ISCEDL\_2.0,ST127Q02TA\_2.0 \\
+together support: 0.752 , conf: 0.752\\
+ST127Q02TA\_2.0 --> ISCEDL\_2.0,REPEAT \\
+together support: 0.752 , conf: 1.0 \\
+ISCEDL\_2.0 --> ST001D01T\_9.0,REPEAT \\
+ together support: 0.776 , conf: 0.776 \\
+ST001D01T\_9.0 --> ISCEDL\_2.0,REPEAT \\
+ together support: 0.776 , conf: 1.0 \\
+REPEAT --> ISCEDL\_2.0,ST001D01T\_9.0 \\
+ together support: 0.776 , conf: 0.776 \\
+GRADE\_-1.0 --> ISCEDL\_2.0,REPEAT \\
+ together support: 0.776 , conf: 1.0 \\
+ISCEDL\_2.0 --> GRADE\_-1.0,REPEAT \\
+ together support: 0.776 , conf: 0.776 \\
+REPEAT --> GRADE\_-1.0,ISCEDL\_2.0 \\
+ together support: 0.776 , conf: 0.776 \\
+GRADE\_-1.0 --> ISCEDL\_2.0,ST001D01T\_9.0 \\
+together support: 0.776 , conf: 1.0 \\
+ISCEDL\_2.0 --> GRADE\_-1.0,ST001D01T\_9.0 \\
+ together support: 0.776 , conf: 0.776 \\
+ST001D01T\_9.0 --> GRADE\_-1.0,ISCEDL\_2.0 \\
+together support: 0.776 , conf: 1.0 \\
+GRADE\_-1.0 --> ST001D01T\_9.0,REPEAT \\
+together support: 0.776 , conf: 1.0 \\
+ST001D01T\_9.0 --> GRADE\_-1.0,REPEAT \\
+together support: 0.776 , conf: 1.0 \\
+REPEAT --> GRADE\_-1.0,ST001D01T\_9.0 \\
+ together support: 0.776 , conf: 0.776 \\
+GRADE\_-1.0 --> ISCEDL\_2.0,ST001D01T\_9.0,REPEAT \\
+together support: 0.776 , conf: 1.0 \\
+ST001D01T\_9.0 --> GRADE\_-1.0,ISCEDL\_2.0,REPEAT \\
+ together support: 0.776 , conf: 1.0 \\
+ISCEDL\_2.0 --> GRADE\_-1.0,ST001D01T\_9.0,REPEAT \\
+  together support: 0.776 , conf: 0.776 \\
+REPEAT --> GRADE\_-1.0,ISCEDL\_2.0,ST001D01T\_9.0 \\
+  together support: 0.776 , conf: 0.776 \\
+
+    \subsubsection{同时考虑conf和Lift的关联规则 } 
+    GRADE\_-1.0 --> ST001D01T\_9.0 \\
+    together support: 0.776 , conf: 1.0 , lift: 1.289\\
+    ST001D01T\_9.0 --> GRADE\_-1.0 \\
+    together support: 0.776 , conf: 1.0 , lift: 1.289\\
+    GRADE\_-1.0 --> ST001D01T\_9.0,ISCEDL\_2.0 \\
+    together support: 0.776 , conf: 1.0 , lift: 1.289\\
+    ST001D01T\_9.0 --> GRADE\_-1.0,ISCEDL\_2.0 \\
+    together support: 0.776 , conf: 1.0 , lift: 1.289\\
+    GRADE\_-1.0 --> REPEAT,ST001D01T\_9.0 \\
+    together support: 0.776 , conf: 1.0 , lift: 1.289\\
+    ST001D01T\_9.0 --> REPEAT,GRADE\_-1.0 \\
+    together support: 0.776 , conf: 1.0 , lift: 1.289\\
+    GRADE\_-1.0 --> REPEAT,ST001D01T\_9.0,ISCEDL\_2.0 \\
+    together support: 0.776 , conf: 1.0 , lift: 1.289\\
+    ST001D01T\_9.0 --> REPEAT,GRADE\_-1.0,ISCEDL\_2.0 \\
+    together support: 0.776 , conf: 1.0 , lift: 1.289\\
+    
+\subsection{考虑CNTRYID的关联规则}
+\subsubsection{全部CNTRYID-同时考虑conf和Lift的关联规则 } 
+    ST001D01T\_9.0 --> GRADE\_-1.0 \\
+     together support: 0.776 , conf: 1.0 , lift: 1.289\\
+   GRADE\_-1.0 --> ST001D01T\_9.0 \\
+     together support: 0.776 , conf: 1.0 , lift: 1.289\\
+   ST127Q02TA\_2.0 --> CNTRYID\_724.0 \\
+    together support: 0.67 , conf: 0.891 , lift: 1.04\\
+   CNTRYID\_724.0 --> ST127Q02TA\_2.0 \\
+     together support: 0.67 , conf: 0.782 , lift: 1.04\\
+   ST001D01T\_9.0 --> CNTRYID\_724.0 \\
+     together support: 0.666 , conf: 0.858 , lift: 1.002\\
+   CNTRYID\_724.0 --> ST001D01T\_9.0 \\
+     together support: 0.666 , conf: 0.777 , lift: 1.002\\
+   GRADE\_-1.0 --> CNTRYID\_724.0 \\
+     together support: 0.666 , conf: 0.858 , lift: 1.002\\
+   CNTRYID\_724.0 --> GRADE\_-1.0\\ 
+     together support: 0.666 , conf: 0.777 , lift: 1.002\\
+   ST001D01T\_9.0 --> ISCEDL\_2.0,GRADE\_-1.0 \\
+     together support: 0.776 , conf: 1.0 , lift: 1.289\\
+   GRADE\_-1.0 --> ST001D01T\_9.0,ISCEDL\_2.0 \\
+     together support: 0.776 , conf: 1.0 , lift: 1.289\\
+   ST001D01T\_9.0 --> REPEAT,GRADE\_-1.0 \\
+     together support: 0.776 , conf: 1.0 , lift: 1.289\\
+   GRADE\_-1.0 --> ST001D01T\_9.0,REPEAT \\
+     together support: 0.776 , conf: 1.0 , lift: 1.289\\
+   ST127Q02TA\_2.0 --> ISCEDL\_2.0,CNTRYID\_724.0 \\
+    together support: 0.67 , conf: 0.891 , lift: 1.04\\
+   CNTRYID\_724.0 --> ISCEDL\_2.0,ST127Q02TA\_2.0 \\
+     together support: 0.67 , conf: 0.782 , lift: 1.04\\
+   ST127Q02TA\_2.0 --> REPEAT,CNTRYID\_724.0 \\
+    together support: 0.67 , conf: 0.891 , lift: 1.04\\
+   CNTRYID\_724.0 --> REPEAT,ST127Q02TA\_2.0 \\
+     together support: 0.67 , conf: 0.782 , lift: 1.04\\
+   ST001D01T\_9.0 --> ISCEDL\_2.0,CNTRYID\_724.0 \\
+     together support: 0.666 , conf: 0.858 , lift: 1.002\\
+   CNTRYID\_724.0 --> ST001D01T\_9.0,ISCEDL\_2.0 \\
+     together support: 0.666 , conf: 0.777 , lift: 1.002\\
+   GRADE\_-1.0 --> ISCEDL\_2.0,CNTRYID\_724.0 \\
+     together support: 0.666 , conf: 0.858 , lift: 1.002\\
+   CNTRYID\_724.0 --> ISCEDL\_2.0,GRADE\_-1.0 \\
+     together support: 0.666 , conf: 0.777 , lift: 1.002\\
+   ST001D01T\_9.0 --> REPEAT,CNTRYID\_724.0 \\
+     together support: 0.666 , conf: 0.858 , lift: 1.002\\
+   CNTRYID\_724.0 --> ST001D01T\_9.0,REPEAT \\
+     together support: 0.666 , conf: 0.777 , lift: 1.002\\
+   GRADE\_-1.0 --> REPEAT,CNTRYID\_724.0 \\
+     together support: 0.666 , conf: 0.858 , lift: 1.002\\
+   CNTRYID\_724.0 --> REPEAT,GRADE\_-1.0 \\
+     together support: 0.666 , conf: 0.777 , lift: 1.002\\
+   ST001D01T\_9.0 --> GRADE\_-1.0,CNTRYID\_724.0 \\
+    together support: 0.666 , conf: 0.858 , lift: 1.289\\
+   GRADE\_-1.0 --> ST001D01T\_9.0,CNTRYID\_724.0 \\
+    together support: 0.666 , conf: 0.858 , lift: 1.289\\
+   CNTRYID\_724.0 --> ST001D01T\_9.0,GRADE\_-1.0 \\
+     together support: 0.666 , conf: 0.777 , lift: 1.002\\
+   ST001D01T\_9.0 --> ISCEDL\_2.0,REPEAT,GRADE\_-1.0 \\
+     together support: 0.776 , conf: 1.0 , lift: 1.289\\
+   GRADE\_-1.0 --> ST001D01T\_9.0,ISCEDL\_2.0,REPEAT \\
+     together support: 0.776 , conf: 1.0 , lift: 1.289\\
+   CNTRYID\_724.0 --> ISCEDL\_2.0,REPEAT,ST127Q02TA\_2.0 \\
+     together support: 0.67 , conf: 0.782 , lift: 1.04\\
+   ST127Q02TA\_2.0 --> ISCEDL\_2.0,REPEAT,CNTRYID\_724.0 \\
+    together support: 0.67 , conf: 0.891 , lift: 1.04\\
+   CNTRYID\_724.0 --> ST001D01T\_9.0,ISCEDL\_2.0,REPEAT \\
+     together support: 0.666 , conf: 0.777 , lift: 1.002\\
+   ST001D01T\_9.0 --> ISCEDL\_2.0,REPEAT,CNTRYID\_724.0\\ 
+     together support: 0.666 , conf: 0.858 , lift: 1.002\\
+   CNTRYID\_724.0 --> ISCEDL\_2.0,REPEAT,GRADE\_-1.0 \\
+     together support: 0.666 , conf: 0.777 , lift: 1.002\\
+   GRADE\_-1.0 --> ISCEDL\_2.0,REPEAT,CNTRYID\_724.0 \\
+     together support: 0.666 , conf: 0.858 , lift: 1.002\\
+   CNTRYID\_724.0 --> ST001D01T\_9.0,ISCEDL\_2.0,GRADE\_-1.0 \\
+     together support: 0.666 , conf: 0.777 , lift: 1.002\\
+   ST001D01T\_9.0 --> ISCEDL\_2.0,GRADE\_-1.0,CNTRYID\_724.0 \\
+    together support: 0.666 , conf: 0.858 , lift: 1.289\\
+   GRADE\_-1.0 --> ST001D01T\_9.0,ISCEDL\_2.0,CNTRYID\_724.0 \\
+    together support: 0.666 , conf: 0.858 , lift: 1.289\\
+   CNTRYID\_724.0 --> ST001D01T\_9.0,REPEAT,GRADE\_-1.0 \\
+     together support: 0.666 , conf: 0.777 , lift: 1.002\\
+   ST001D01T\_9.0 --> REPEAT,GRADE\_-1.0,CNTRYID\_724.0 \\
+    together support: 0.666 , conf: 0.858 , lift: 1.289\\
+   GRADE\_-1.0 --> ST001D01T\_9.0,REPEAT,CNTRYID\_724.0 \\
+    together support: 0.666 , conf: 0.858 , lift: 1.289\\
+   CNTRYID\_724.0 --> ST001D01T\_9.0,ISCEDL\_2.0,REPEAT,GRADE\_-1.0 \\
+     together support: 0.666 , conf: 0.777 , lift: 1.002\\
+   ST001D01T\_9.0 --> ISCEDL\_2.0,REPEAT,GRADE\_-1.0,CNTRYID\_724.0 \\
+    together support: 0.666 , conf: 0.858 , lift: 1.289\\
+   GRADE\_-1.0 --> ST001D01T\_9.0,ISCEDL\_2.0,REPEAT,CNTRYID\_724.0 \\
+    together support: 0.666 , conf: 0.858 , lift: 1.289\\
+\subsubsection{CNTRYID591.0-同时考虑conf和Lift的关联规则 } 
+
+ST001D01T\_9.0 --> ST127Q02TA\_2.0 \\
+ together support: 0.612 , conf: 0.771 , lift: 1.086\\
+ST127Q02TA\_2.0 --> ST001D01T\_9.0 \\
+ together support: 0.612 , conf: 0.862 , lift: 1.086\\
+ST127Q02TA\_2.0 --> GRADE\_-1.0 \\
+ together support: 0.612 , conf: 0.862 , lift: 1.086\\
+GRADE\_-1.0 --> ST127Q02TA\_2.0 \\
+ together support: 0.612 , conf: 0.771 , lift: 1.086\\
+ST001D01T\_9.0 --> GRADE\_-1.0 \\
+  together support: 0.793 , conf: 1.0 , lift: 1.261\\
+GRADE\_-1.0 --> ST001D01T\_9.0 \\
+  together support: 0.793 , conf: 1.0 , lift: 1.261\\
+ST001D01T\_9.0 --> ST127Q02TA\_2.0,GRADE\_-1.0 \\
+ together support: 0.612 , conf: 0.771 , lift: 1.261\\
+ST127Q02TA\_2.0 --> ST001D01T\_9.0,GRADE\_-1.0 \\
+ together support: 0.612 , conf: 0.862 , lift: 1.086\\
+GRADE\_-1.0 --> ST001D01T\_9.0,ST127Q02TA\_2.0 \\
+ together support: 0.612 , conf: 0.771 , lift: 1.261\\
+ST001D01T\_9.0 --> ST127Q02TA\_2.0,ISCEDL\_2.0 \\
+ together support: 0.612 , conf: 0.771 , lift: 1.086\\
+ST127Q02TA\_2.0 --> ST001D01T\_9.0,ISCEDL\_2.0 \\
+ together support: 0.612 , conf: 0.862 , lift: 1.086\\
+ST001D01T\_9.0 --> ST127Q02TA\_2.0,REPEAT \\
+ together support: 0.612 , conf: 0.771 , lift: 1.086\\
+ST127Q02TA\_2.0 --> ST001D01T\_9.0,REPEAT \\
+ together support: 0.612 , conf: 0.862 , lift: 1.086\\
+ST127Q02TA\_2.0 --> GRADE\_-1.0,ISCEDL\_2.0 \\
+ together support: 0.612 , conf: 0.862 , lift: 1.086\\
+GRADE\_-1.0 --> ST127Q02TA\_2.0,ISCEDL\_2.0 \\
+ together support: 0.612 , conf: 0.771 , lift: 1.086\\
+ST127Q02TA\_2.0 --> GRADE\_-1.0,REPEAT \\
+ together support: 0.612 , conf: 0.862 , lift: 1.086\\
+GRADE\_-1.0 --> ST127Q02TA\_2.0,REPEAT \\
+ together support: 0.612 , conf: 0.771 , lift: 1.086\\
+ST001D01T\_9.0 --> GRADE\_-1.0,ISCEDL\_2.0 \\
+  together support: 0.793 , conf: 1.0 , lift: 1.261\\
+GRADE\_-1.0 --> ST001D01T\_9.0,ISCEDL\_2.0\\ 
+  together support: 0.793 , conf: 1.0 , lift: 1.261\\
+ST001D01T\_9.0 --> GRADE\_-1.0,REPEAT \\
+  together support: 0.793 , conf: 1.0 , lift: 1.261\\
+GRADE\_-1.0 --> ST001D01T\_9.0,REPEAT \\
+  together support: 0.793 , conf: 1.0 , lift: 1.261\\
+ST001D01T\_9.0 --> ST127Q02TA\_2.0,GRADE\_-1.0,ISCEDL\_2.0\\ 
+ together support: 0.612 , conf: 0.771 , lift: 1.261\\
+ST127Q02TA\_2.0 --> ST001D01T\_9.0,GRADE\_-1.0,ISCEDL\_2.0 \\
+ together support: 0.612 , conf: 0.862 , lift: 1.086\\
+GRADE\_-1.0 --> ST001D01T\_9.0,ST127Q02TA\_2.0,ISCEDL\_2.0\\ 
+ together support: 0.612 , conf: 0.771 , lift: 1.261\\
+ST001D01T\_9.0 --> ST127Q02TA\_2.0,REPEAT,GRADE\_-1.0 \\
+ together support: 0.612 , conf: 0.771 , lift: 1.261\\
+ST127Q02TA\_2.0 --> ST001D01T\_9.0,GRADE\_-1.0,REPEAT \\
+ together support: 0.612 , conf: 0.862 , lift: 1.086\\
+GRADE\_-1.0 --> ST001D01T\_9.0,ST127Q02TA\_2.0,REPEAT \\
+ together support: 0.612 , conf: 0.771 , lift: 1.261\\
+ST001D01T\_9.0 --> ST127Q02TA\_2.0,REPEAT,ISCEDL\_2.0 \\
+ together support: 0.612 , conf: 0.771 , lift: 1.086\\
+ST127Q02TA\_2.0 --> ST001D01T\_9.0,REPEAT,ISCEDL\_2.0 \\
+ together support: 0.612 , conf: 0.862 , lift: 1.086\\
+ST127Q02TA\_2.0 --> GRADE\_-1.0,REPEAT,ISCEDL\_2.0 \\
+ together support: 0.612 , conf: 0.862 , lift: 1.086\\
+GRADE\_-1.0 --> ST127Q02TA\_2.0,REPEAT,ISCEDL\_2.0 \\
+ together support: 0.612 , conf: 0.771 , lift: 1.086\\
+ST001D01T\_9.0 --> GRADE\_-1.0,REPEAT,ISCEDL\_2.0 \\
+  together support: 0.793 , conf: 1.0 , lift: 1.261\\
+GRADE\_-1.0 --> ST001D01T\_9.0,REPEAT,ISCEDL\_2.0 \\
+  together support: 0.793 , conf: 1.0 , lift: 1.261\\
+ST001D01T\_9.0 --> ST127Q02TA\_2.0,REPEAT,ISCEDL\_2.0,GRADE\_-1.0 \\
+ together support: 0.612 , conf: 0.771 , lift: 1.261\\
+ST127Q02TA\_2.0 --> ST001D01T\_9.0,GRADE\_-1.0,REPEAT,ISCEDL\_2.0 \\
+ together support: 0.612 , conf: 0.862 , lift: 1.086\\
+GRADE\_-1.0 --> ST001D01T\_9.0,ST127Q02TA\_2.0,REPEAT,ISCEDL\_2.0 \\
+ together support: 0.612 , conf: 0.771 , lift: 1.261\\
+\subsubsection{CNTRYID724.0-同时考虑conf和Lift的关联规则 } 
+ST127Q02TA\_2.0 --> ST001D01T\_9.0 \\
+  together support: 0.619 , conf: 0.792 , lift: 1.018\\
+ST001D01T\_9.0 --> ST127Q02TA\_2.0 \\
+  together support: 0.619 , conf: 0.797 , lift: 1.018\\
+ST127Q02TA\_2.0 --> GRADE\_-1.0 \\
+  together support: 0.619 , conf: 0.792 , lift: 1.018\\
+GRADE\_-1.0 --> ST127Q02TA\_2.0 \\
+  together support: 0.619 , conf: 0.797 , lift: 1.018\\
+ST001D01T\_9.0 --> GRADE\_-1.0 \\
+  together support: 0.777 , conf: 1.0 , lift: 1.286\\
+GRADE\_-1.0 --> ST001D01T\_9.0 \\
+  together support: 0.777 , conf: 1.0 , lift: 1.286\\
+ST127Q02TA\_2.0 --> ST001D01T\_9.0,GRADE\_-1.0 \\
+  together support: 0.619 , conf: 0.792 , lift: 1.018\\
+ST001D01T\_9.0 --> ST127Q02TA\_2.0,GRADE\_-1.0 \\
+ together support: 0.619 , conf: 0.797 , lift: 1.286\\
+GRADE\_-1.0 --> ST127Q02TA\_2.0,ST001D01T\_9.0 \\
+ together support: 0.619 , conf: 0.797 , lift: 1.286\\
+ST127Q02TA\_2.0 --> ST001D01T\_9.0,ISCEDL\_2.0 \\
+  together support: 0.619 , conf: 0.792 , lift: 1.018\\
+ST001D01T\_9.0 --> ST127Q02TA\_2.0,ISCEDL\_2.0 \\
+  together support: 0.619 , conf: 0.797 , lift: 1.018\\
+ST127Q02TA\_2.0 --> ST001D01T\_9.0,REPEAT \\
+  together support: 0.619 , conf: 0.792 , lift: 1.018\\
+ST001D01T\_9.0 --> ST127Q02TA\_2.0,REPEAT \\
+  together support: 0.619 , conf: 0.797 , lift: 1.018\\
+ST127Q02TA\_2.0 --> GRADE\_-1.0,ISCEDL\_2.0 \\
+  together support: 0.619 , conf: 0.792 , lift: 1.018\\
+GRADE\_-1.0 --> ST127Q02TA\_2.0,ISCEDL\_2.0 \\
+  together support: 0.619 , conf: 0.797 , lift: 1.018\\
+ST127Q02TA\_2.0 --> GRADE\_-1.0,REPEAT \\
+  together support: 0.619 , conf: 0.792 , lift: 1.018\\
+GRADE\_-1.0 --> ST127Q02TA\_2.0,REPEAT \\
+  together support: 0.619 , conf: 0.797 , lift: 1.018\\
+ST001D01T\_9.0 --> GRADE\_-1.0,ISCEDL\_2.0 \\
+  together support: 0.777 , conf: 1.0 , lift: 1.286\\
+GRADE\_-1.0 --> ST001D01T\_9.0,ISCEDL\_2.0 \\
+  together support: 0.777 , conf: 1.0 , lift: 1.286\\
+ST001D01T\_9.0 --> GRADE\_-1.0,REPEAT \\
+  together support: 0.777 , conf: 1.0 , lift: 1.286\\
+GRADE\_-1.0 --> ST001D01T\_9.0,REPEAT \\
+  together support: 0.777 , conf: 1.0 , lift: 1.286\\
+ST001D01T\_9.0 --> ST127Q02TA\_2.0,GRADE\_-1.0,ISCEDL\_2.0 \\
+ together support: 0.619 , conf: 0.797 , lift: 1.286\\
+ST127Q02TA\_2.0 --> ST001D01T\_9.0,ISCEDL\_2.0,GRADE\_-1.0\\ 
+  together support: 0.619 , conf: 0.792 , lift: 1.018\\
+GRADE\_-1.0 --> ST127Q02TA\_2.0,ST001D01T\_9.0,ISCEDL\_2.0 \\
+ together support: 0.619 , conf: 0.797 , lift: 1.286\\
+ST001D01T\_9.0 --> ST127Q02TA\_2.0,GRADE\_-1.0,REPEAT \\
+ together support: 0.619 , conf: 0.797 , lift: 1.286\\
+ST127Q02TA\_2.0 --> ST001D01T\_9.0,GRADE\_-1.0,REPEAT \\
+  together support: 0.619 , conf: 0.792 , lift: 1.018\\
+GRADE\_-1.0 --> ST127Q02TA\_2.0,ST001D01T\_9.0,REPEAT \\
+ together support: 0.619 , conf: 0.797 , lift: 1.286\\
+ST001D01T\_9.0 --> ST127Q02TA\_2.0,ISCEDL\_2.0,REPEAT \\
+  together support: 0.619 , conf: 0.797 , lift: 1.018\\
+ST127Q02TA\_2.0 --> ST001D01T\_9.0,ISCEDL\_2.0,REPEAT \\
+  together support: 0.619 , conf: 0.792 , lift: 1.018\\
+ST127Q02TA\_2.0 --> REPEAT,GRADE\_-1.0,ISCEDL\_2.0 \\
+  together support: 0.619 , conf: 0.792 , lift: 1.018\\
+GRADE\_-1.0 --> ST127Q02TA\_2.0,ISCEDL\_2.0,REPEAT \\
+  together support: 0.619 , conf: 0.797 , lift: 1.018\\
+ST001D01T\_9.0 --> GRADE\_-1.0,ISCEDL\_2.0,REPEAT \\
+  together support: 0.777 , conf: 1.0 , lift: 1.286\\
+GRADE\_-1.0 --> ST001D01T\_9.0,ISCEDL\_2.0,REPEAT \\
+  together support: 0.777 , conf: 1.0 , lift: 1.286\\
+ST127Q02TA\_2.0 --> ST001D01T\_9.0,GRADE\_-1.0,ISCEDL\_2.0,REPEAT \\
+  together support: 0.619 , conf: 0.792 , lift: 1.018\\
+GRADE\_-1.0 --> ST127Q02TA\_2.0,ST001D01T\_9.0,ISCEDL\_2.0,REPEAT \\
+ together support: 0.619 , conf: 0.797 , lift: 1.286\\
+ST001D01T\_9.0 --> ST127Q02TA\_2.0,GRADE\_-1.0,ISCEDL\_2.0,REPEAT \\
+ together support: 0.619 , conf: 0.797 , lift: 1.286\\
+
+\subsubsection{CNTRYID484.0-同时考虑conf和Lift的关联规则 } 
+ST001D01T\_9.0 --> GRADE\_-1.0 
+ together support: 0.857 , conf: 1.0 , lift: 1.167\\
+GRADE\_-1.0 --> ST001D01T\_9.0 \\
+ together support: 0.857 , conf: 1.0 , lift: 1.167\\
+ST001D01T\_9.0 --> GRADE\_-1.0,ISCEDL\_2.0 \\
+ together support: 0.857 , conf: 1.0 , lift: 1.167\\
+GRADE\_-1.0 --> ST001D01T\_9.0,ISCEDL\_2.0 \\
+ together support: 0.857 , conf: 1.0 , lift: 1.167\\
+ST001D01T\_9.0 --> GRADE\_-1.0,REPEAT \\
+ together support: 0.857 , conf: 1.0 , lift: 1.167\\
+GRADE\_-1.0 --> ST001D01T\_9.0,REPEAT\\ 
+ together support: 0.857 , conf: 1.0 , lift: 1.167\\
+ST001D01T\_9.0 --> GRADE\_-1.0,REPEAT,ISCEDL\_2.0 \\
+ together support: 0.857 , conf: 1.0 , lift: 1.167\\
+GRADE\_-1.0 --> ST001D01T\_9.0,REPEAT,ISCEDL\_2.0 \\
+ together support: 0.857 , conf: 1.0 , lift: 1.167\\
+
+\subsubsection{CNTRYID152.0-同时考虑conf和Lift的关联规则 } 
+数据量过少无法产生关联规则。
+
+\subsubsection{CNTRYID214.0 -同时考虑conf和Lift的关联规则 } 
+数据量过少无法产生关联规则。
+
+\end{document}
