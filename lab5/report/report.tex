@@ -1,0 +1,232 @@
+\documentclass[12pt, a4paper, oneside]{ctexart}
+\usepackage{amsmath, amsthm, amssymb, graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{color}
+\usepackage{enumerate}
+\usepackage{epstopdf}
+\usepackage{float}
+\usepackage{framed}
+\usepackage{titlesec}
+\usepackage{cite}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{geometry}
+\usepackage{caption}
+\usepackage{subfigure}
+\usepackage[section]{placeins}
+\usepackage{fancyhdr}%导入fancyhdr包
+\usepackage{ctex}%导入ctex包
+\usepackage[ruled,vlined]{algorithm2e}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=blue,      
+    urlcolor=blue,
+    citecolor=cyan,
+}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+\definecolor{shadecolor}{rgb}{0.5,0.5,0.5}
+\lstset{ %
+    language=Python,                % the language of the code
+    basicstyle=\footnotesize,           % the size of the fonts that are used for the code
+    numbers=left,                   % where to put the line-numbers
+    %numberstyle=\tiny\color{gray},  % the style that is used for the line-numbers
+    %stepnumber=2,                   % the step between two line-numbers. If it's 1, each line 
+                            % will be numbered
+    %numbersep=5pt,                  % how far the line-numbers are from the code
+    %backgroundcolor=\color{blue},      % choose the background color. You must add \usepackage{color}
+    showspaces=false,               % show spaces adding particular underscores
+    %showstringspaces=false,         % underline spaces within strings
+    showtabs=false,                 % show tabs within strings adding particular underscores
+    frame=single,                   % adds a frame around the code
+    rulecolor=\color{black},        % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. commens (green here))
+    tabsize=2,                      % sets default tabsize to 2 spaces
+    captionpos=b,                   % sets the caption-position to bottom
+    breaklines=true,                % sets automatic line breaking
+    breakatwhitespace=false,        % sets if automatic breaks should only happen at whitespace
+    % title=\lstname,                   % show the filename of files included with \lstinputlisting;
+                            % also try caption instead of title
+    keywordstyle=\color{blue},          % keyword style
+    commentstyle=\color{dkgreen},       % comment style
+    stringstyle=\color{mauve},         % string literal style
+    escapeinside={\%*}{*)},            % if you want to add LaTeX within your code
+    morekeywords={*,...}               % if you want to add more keywords to the set
+}
+\title{数据分析及实践\_Assignment5}
+\author{Xiaoma}
+\date{\today}
+\pagestyle{fancy}
+
+\lhead{第 5 次实验\\\today}
+\chead{中国科学技术大学\\数据分析及实践}
+
+\rhead{Assignment 5\\ {\CTEXoptions[today=old]\today}}
+\newcommand{\upcite}[1]{\textsuperscript{\cite{#1}}}
+\begin{document}
+\maketitle
+\section{实验要求}
+在实验三实现的数据分析的基础上使用\textbf{PISA2018}数据集
+，对\textbf{REPEAT}列进行分类。
+\begin{itemize}
+    \item 实现至少一种分类算法（例如：决策树、KNN、朴素贝叶斯、感知机和集成算法等）
+    \item 参考实验三中的特征工程，测试算法在\textbf{PISA2018}数据集上的预测性能，并撰写实验报告
+    \item 实验报告需记录最终的方案
+\end{itemize}
+
+具体要求：
+\begin{itemize}
+    \item 代码实现可以使用现有的机器学习库，也可以自行编写实现算法
+    \item 预测任务与实验三一致，以\textbf{ACC}为评价指标
+    \item 使用5折交叉验证的方法测试模型性能
+\end{itemize}
+\newpage
+
+\section{实验环境}
+\textbf{VSCode + Python3.9.13}
+\section{实验步骤}
+\subsection{数据预处理}
+首先根据实验要求，去掉相关性最高的5个特征，已知实验三的实验结果，抽取剩余与$REPEAT$最相关的4个特征以及\textbf{REPEAT}列，
+去除缺失\textbf{REPEAT}的样本，然后观察其余缺失值，通过观察可以发现
+有缺失值的特征\textbf{HOMEPOS}
+的缺失数量相对于数据总体很小，故为了保证数据准确性，将缺失值直接删去。
+
+\subsubsection{数据去噪}
+分别使用了$3\sigma$准则与\textbf{EllipticEnvelope}方法进行数据去噪，
+但通过后面对实验结果的观察可以发现这两种去噪方法对模型性能
+的影响几乎没有差别。
+
+\subsection{模型训练}
+使用\textbf{sklearn.model\_selection}包中的\textbf{cross\_val\_score}方法直接进行$n$
+折交叉验证。
+
+划分特征数据与\textbf{REPEAT}标签，分别使用\textbf{XGBClassifier,
+MLPClassifier,DecisionTreeClassifier,KNeighborsClassifier}模型来进行训练，
+经过反复调参，最终得到的最佳性能分别为
+
+\begin{table*}[h]
+    \centering%把表居中
+    \begin{tabular}{cc}%内容全部居中
+    \toprule%第一道横线
+    模型&5折交叉验证性能 \\
+    \midrule%第二道横线 
+    \textbf{XGBClassifier} &0.8203\\
+    \textbf{DecisionTreeClassifier} &0.8240\\
+    \textbf{MLPClassifier} &0.7651\\
+    \textbf{KNeighborsClassifier} & 0.7481\\
+
+    \bottomrule%第三道横线
+    \end{tabular}
+\end{table*}
+
+根据实验结果可以推测数据引入的特征量过少，根据实验三得到的相关度系数，我们选择对不同的模型使用
+不同的特征组合：
+\begin{itemize}
+    \item \textbf{XGBClassifier} \\ 
+    \textbf{ISCEDL,AGE,HOMEPOS,COBN\_F,ENTUSE,PROGN,\\
+    COBN\_M,IC001Q09TA}
+    \item \textbf{DecisionTreeClassifier}\\
+    \textbf{COBN\_F,ST011D17TA,ENTUSE,HOMEPOS\\
+    IC008Q02TA,IC001Q11TA,MISCED\_D,SCREADDIFF}
+    \item \textbf{MLPClassifier}\\
+    \textbf{ISCEDL,AGE,HOMEPOS,COBN\_F,ENTUSE,PROGN,\\
+    COBN\_M,IC001Q09TA}
+    \item \textbf{KNeighborsClassifier}\\
+    \textbf{ISCEDL,AGE,HOMEPOS,COBN\_F,ENTUSE,PROGN,\\
+    COBN\_M,IC001Q09TA} 
+\end{itemize}
+
+
+通过反复调参，
+最终得到的最佳性能分别为
+
+\begin{table*}[h]
+    \centering%把表居中
+    \begin{tabular}{cc}%内容全部居中
+    \toprule%第一道横线
+    模型&5折交叉验证性能 \\
+    \midrule%第二道横线 
+    \textbf{XGBClassifier} &0.8391\\
+    \textbf{DecisionTreeClassifier} &0.8302\\
+    \textbf{MLPClassifier} &0.8301\\
+    \textbf{KNeighborsClassifier} & 0.7881\\
+
+    \bottomrule%第三道横线
+    \end{tabular}
+\end{table*}
+\clearpage
+取四个模型所有特征的并集，通过反复调参，
+最终得到的最佳性能分别为
+
+\begin{table*}[h]
+    \centering%把表居中
+    \begin{tabular}{cc}%内容全部居中
+    \toprule%第一道横线
+    模型&5折交叉验证性能 \\
+    \midrule%第二道横线 
+    \textbf{XGBClassifier} &0.8375\\
+    \textbf{DecisionTreeClassifier} &0.8316\\
+    \textbf{MLPClassifier} &0.8301\\
+    \textbf{KNeighborsClassifier} & 0.7999\\
+
+    \bottomrule%第三道横线
+    \end{tabular}
+\end{table*}
+
+由结果可知，模型性能已几乎不变。
+
+考虑将所有特征全部使用，最终得到的最佳性能分别为
+
+\begin{table*}[h]
+    \centering%把表居中
+    \begin{tabular}{cc}%内容全部居中
+    \toprule%第一道横线
+    模型&5折交叉验证性能 \\
+    \midrule%第二道横线 
+    \textbf{XGBClassifier} &0.6869\\
+    \textbf{DecisionTreeClassifier} &0.8109\\
+    \textbf{MLPClassifier} &0.8013\\
+    \textbf{KNeighborsClassifier} & 0.3872\\
+
+    \bottomrule%第三道横线
+    \end{tabular}
+\end{table*}
+
+通过观察可知，使用除了最初去除的5个特征以外的全部特征进行训练，得到的模型性能要比使用子集差，则
+我们选择\textbf{COBN\_F,OCOD2, ISCEDL,AGE,\\HOMEPOS,ENTUSE,PROGN,COBN\_M,IC001Q09TA,
+ST011D17TA,\\IC008Q02TA,IC001Q11TA,MISCED\_D,SCREADDIFF}作为最终选择的训练参数。
+
+\section{总结}
+
+通过观察实验结果可以发现，在训练过程中，加入与预测标签不相关的特征对预测任务无积极效果。
+
+观察使用的特征含义：
+\begin{table*}[h]
+    \centering%把表居中
+    \begin{tabular}{cc}%内容全部居中
+    \toprule%第一道横线
+    特征&含义 \\
+    \midrule%第二道横线 
+    \textbf{COBN\_F} &Country of Birth National Categories- Mother\\
+    \textbf{COBN\_M} &Country of Birth National Categories- Father\\
+    \textbf{OCOD\_2} &ISCO-08 Occupation code - Father\\
+    \textbf{AGE} &AGE\\
+    \textbf{HOMEPOS} &Home possessions (WLE)\\
+    \textbf{ENTUSE} &ICT use outside of school (leisure) (WLE)\\
+    \textbf{PROGN} &Unique national study programme code\\
+    \textbf{IC001Q09TA} &Available for you to use at home: Printer\\
+    \textbf{ST011D17TA} &In your home: <Country-specific wealth item 1>\\
+    \textbf{IC008Q02TA} &Use digital devices outside of school: Playing collaborative online games.\\
+    \textbf{IC001Q11TA} &Available for you to use at home: <ebook reader>, e.g. <Amazon Kindle>\\
+    \textbf{MISCED\_D} &Mothers Education - alternate definition (ISCED)\\
+    \textbf{SCREADDIFF} &Self-concept of reading: Perception of difficulty (WLE)\\
+    
+    \bottomrule%第三道横线
+    \end{tabular}
+\end{table*}
+可以发现复读还与家庭的经济状况，父母的职业与教育程度，个人是否沉迷与网络有关。
+
+\end{document}
