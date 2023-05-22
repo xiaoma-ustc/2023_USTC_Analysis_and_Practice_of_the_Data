@@ -80,7 +80,7 @@
 具体要求：
 \begin{itemize}
     \item 代码实现可以使用现有的机器学习库，也可以自行编写实现算法
-    \item 预测任务与实验三一致，以\textbf{ACC}为评价指标
+    \item 预测任务与实验三一致，以\textbf{ACC,F1\_score}为评价指标
     \item 使用5折交叉验证的方法测试模型性能
 \end{itemize}
 \newpage
@@ -109,14 +109,14 @@ MLPClassifier,DecisionTreeClassifier,KNeighborsClassifier}模型来进行训练�
 
 \begin{table*}[h]
     \centering%把表居中
-    \begin{tabular}{cc}%内容全部居中
+    \begin{tabular}{ccc}%内容全部居中
     \toprule%第一道横线
-    模型&5折交叉验证性能 \\
+    模型&5折交叉ACC& 5折交叉F1-score\\
     \midrule%第二道横线 
-    \textbf{XGBClassifier} &0.8203\\
-    \textbf{DecisionTreeClassifier} &0.8240\\
-    \textbf{MLPClassifier} &0.7651\\
-    \textbf{KNeighborsClassifier} & 0.7481\\
+    \textbf{XGBClassifier} &0.8203 &0.1473\\
+    \textbf{DecisionTreeClassifier} &0.8240 &0.0741\\
+    \textbf{MLPClassifier} &0.7651 &0.0\\
+    \textbf{KNeighborsClassifier} & 0.7481 &0.2283\\
 
     \bottomrule%第三道横线
     \end{tabular}
@@ -145,14 +145,14 @@ MLPClassifier,DecisionTreeClassifier,KNeighborsClassifier}模型来进行训练�
 
 \begin{table*}[h]
     \centering%把表居中
-    \begin{tabular}{cc}%内容全部居中
+    \begin{tabular}{ccc}%内容全部居中
     \toprule%第一道横线
-    模型&5折交叉验证性能 \\
+    模型&5折交叉ACC& 5折交叉F1-score\\
     \midrule%第二道横线 
-    \textbf{XGBClassifier} &0.8391\\
-    \textbf{DecisionTreeClassifier} &0.8302\\
-    \textbf{MLPClassifier} &0.8301\\
-    \textbf{KNeighborsClassifier} & 0.7881\\
+    \textbf{XGBClassifier} &0.8391& 0.2050\\
+    \textbf{DecisionTreeClassifier} &0.8302& 0.1706\\
+    \textbf{MLPClassifier} &0.8301& 0.0\\
+    \textbf{KNeighborsClassifier} & 0.7881&0.1732 \\
 
     \bottomrule%第三道横线
     \end{tabular}
@@ -163,14 +163,14 @@ MLPClassifier,DecisionTreeClassifier,KNeighborsClassifier}模型来进行训练�
 
 \begin{table*}[h]
     \centering%把表居中
-    \begin{tabular}{cc}%内容全部居中
+    \begin{tabular}{ccc}%内容全部居中
     \toprule%第一道横线
-    模型&5折交叉验证性能 \\
+    模型&5折交叉ACC& 5折交叉F1-score\\
     \midrule%第二道横线 
-    \textbf{XGBClassifier} &0.8375\\
-    \textbf{DecisionTreeClassifier} &0.8316\\
-    \textbf{MLPClassifier} &0.8301\\
-    \textbf{KNeighborsClassifier} & 0.7999\\
+    \textbf{XGBClassifier} &0.8375&0.2195 \\
+    \textbf{DecisionTreeClassifier} &0.8316& 0.1401\\
+    \textbf{MLPClassifier} &0.8301&0.0 \\
+    \textbf{KNeighborsClassifier} & 0.7999&0.1859 \\
 
     \bottomrule%第三道横线
     \end{tabular}
@@ -184,12 +184,12 @@ MLPClassifier,DecisionTreeClassifier,KNeighborsClassifier}模型来进行训练�
     \centering%把表居中
     \begin{tabular}{cc}%内容全部居中
     \toprule%第一道横线
-    模型&5折交叉验证性能 \\
+    模型&5折交叉ACC\\
     \midrule%第二道横线 
-    \textbf{XGBClassifier} &0.6869\\
-    \textbf{DecisionTreeClassifier} &0.8109\\
-    \textbf{MLPClassifier} &0.8013\\
-    \textbf{KNeighborsClassifier} & 0.3872\\
+    \textbf{XGBClassifier} &0.6869 \\
+    \textbf{DecisionTreeClassifier} &0.8109 \\
+    \textbf{MLPClassifier} &0.8013 \\
+    \textbf{KNeighborsClassifier} & 0.3872 \\
 
     \bottomrule%第三道横线
     \end{tabular}
@@ -197,11 +197,17 @@ MLPClassifier,DecisionTreeClassifier,KNeighborsClassifier}模型来进行训练�
 
 通过观察可知，使用除了最初去除的5个特征以外的全部特征进行训练，得到的模型性能要比使用子集差，则
 我们选择\textbf{COBN\_F,OCOD2, ISCEDL,AGE,\\HOMEPOS,ENTUSE,PROGN,COBN\_M,IC001Q09TA,
-ST011D17TA,\\IC008Q02TA,IC001Q11TA,MISCED\_D,SCREADDIFF}作为最终选择的训练参数。
+ST011D17TA,\\IC008Q02TA,IC001Q11TA,MISCED\_D,SCREADDIFF}作为最终选择的训练特征。
 
 \section{总结}
+\begin{itemize}
+    \item 通过观察实验结果可以发现，在训练过程中，加入与预测标签不相关的特征对预测任务无积极效果。
+    \item 实际上训练数据中\textbf{REPEAT}为1的值的数据只有整体的0.168，故实际上训练的模型与随机猜测相差无几，
+    通过，观察\text{F1-score}也验证了这一事实。
+    \item 使用\textbf{XGBClassifier}作为最终的分类器模型，随机的将数据集拆分为5份并
+    使用其中一份作为验证集，最终的性能稳定在\textbf{ACC = 0.78,F1-score = 0.38}上下。
+\end{itemize}
 
-通过观察实验结果可以发现，在训练过程中，加入与预测标签不相关的特征对预测任务无积极效果。
 
 观察使用的特征含义：
 \begin{table*}[h]
@@ -227,6 +233,7 @@ ST011D17TA,\\IC008Q02TA,IC001Q11TA,MISCED\_D,SCREADDIFF}作为最终选择的训
     \bottomrule%第三道横线
     \end{tabular}
 \end{table*}
+
 可以发现复读还与家庭的经济状况，父母的职业与教育程度，个人是否沉迷与网络有关。
 
 \end{document}
